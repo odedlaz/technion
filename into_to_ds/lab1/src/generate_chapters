@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+book_path=${1:-""}
+
+if test -z "$book_path"; then
+   echo "Usage: $0 <path-to-book>"
+   exit 1
+fi
+
+if ! test -f "$book_path"; then
+   echo "file doesn't exist at given path"
+   exit 1
+fi
+
+# transform path to absolute
+abs_path=$(readlink -f "$book_path")
+chapters_dir=$(dirname "$(readlink -f "$0")")/chapters
+
+# remove existing files
+rm -rf "$chapters_dir" && mkdir -p "$chapters_dir" && cd "$chapters_dir" || exit 1
+
+# we use csplit to split the file on every 'CHAPTER' occurence
+# the '%CHAPTER%' telll csplit to skip the text before the chapters
+files=$(csplit --prefix chapter_ \
+       --keep-files \
+       --elide-empty-files \
+      "$abs_path" '%^CHAPTER%' '/^CHAPTER/' '{*}' | \
+      wc -l)
+
+# Rename the files to start at 1, and remove blank trailing lines.
+for chapter in $(seq $((files-1)) -1 0); do
+   f=$(printf "$chapters_dir/chapter_%02d\n" "$chapter")
+   nf="$chapters_dir/chapter_$((chapter+1))"
+   # command substitution strips trailing new lines,
+   # thus, reading the content and dumping it back removes them!
+   mv "$f" "$nf" && echo "$(<"$nf")" > "$nf"
+done
+
+echo "Done processing \"$book_path\", \
+created $(find . -type f | wc -l) files."

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+book_path=${1:-""}
+
+if test -z "$book_path"; then
+   echo "Usage: $0 <path-to-book>"
+   exit 1
+fi
+
+if ! test -f "$book_path"; then
+   echo "file doesn't exist at given path"
+   exit 1
+fi
+
+# 1. replace all punctuation and spaces with new line
+# 2. remove all non alphanumeric characters
+# 3. make everything lowercase
+# 4. sort
+words=$(tr -s '[:punct:][:space:]' '\n'< "$book_path" \
+        | tr -cd '[:alpha:]\n' \
+        | tr '[:upper:]' '[:lower:]' \
+        | uniq )
+
+# calculate the average word length
+average_word_length=$(echo "$words" | awk '
+  function ceil(num)
+   {
+      return (num == int(num)) ? num : int(num)+1
+   }
+   { l+=length($book_path); c++ } END {print ceil(l/c)}')
+
+
+# filter words that are shorter than the average word length
+count=$(echo "$words" | \
+        awk "length > $average_word_length" | \
+        wc -l)
+
+echo "There are $count words that are longer than \
+the average word length ($average_word_length characters)"
