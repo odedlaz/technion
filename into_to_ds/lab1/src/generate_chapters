@@ -18,21 +18,21 @@ chapters_dir=$(dirname "$(readlink -f "$0")")/chapters
 # remove existing files
 rm -rf "$chapters_dir" && mkdir -p "$chapters_dir" && cd "$chapters_dir" || exit 1
 
-# we use csplit to split the file on every 'CHAPTER' occurence
-# the '%CHAPTER%' telll csplit to skip the text before the chapters
-files=$(csplit --prefix chapter_ \
-       --keep-files \
-       --elide-empty-files \
-      "$abs_path" '%^CHAPTER%' '/^CHAPTER/' '{*}' | \
-      wc -l)
+awk '{
+   if ($1 == "CHAPTER") {
+      # extract the chapter
+      chapter=substr($0,9, index($0, ".")-9)
+      l=sprintf("%s.txt", chapter)
+   }
+   if (length(chapter) > 0) {
+      print $0 >> l
+   }
+}' "$abs_path"
+
 
 # Rename the files to start at 1, and remove blank trailing lines.
-for chapter in $(seq $((files-1)) -1 0); do
-   f=$(printf "$chapters_dir/chapter_%02d\n" "$chapter")
-   nf="$chapters_dir/chapter_$((chapter+1))"
-   # command substitution strips trailing new lines,
-   # thus, reading the content and dumping it back removes them!
-   mv "$f" "$nf" && echo "$(<"$nf")" > "$nf"
+for f in *; do
+   echo "$(<"$f")" > "$f"
 done
 
 echo "Done processing \"$book_path\", \

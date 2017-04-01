@@ -11,33 +11,34 @@ function print_stats() {
    # 2. remove all non alphanumeric characters
    # 3. make everything lowercase
    # 4. sort
-   words=$(tr -s '[:punct:][:space:]' '\n'< "$1" | \
+   tr -s '[:punct:][:space:]' '\n'< "$1" | \
            tr -cd '[:alpha:]\n' | \
-           tr '[:upper:]' '[:lower:]' | \
-           sort)
-   # 1. count all uniq occurences, with the amount they appeared
-   # 2. sort the output according to the amount they appeared in
-   freq=$(echo "$words" | \
-          uniq -c | sort -rn)
+           awk '{
+                  for (i=1; i<=NF; i++){
+                     hist[tolower($i)]++;
+                  }
+               }
+         END {
+          min = 1
+          for (w in hist) {
+             if (length(w) > length(longest))
+                longest = w
 
-   # take the first value (most frequent), and print
-   echo "$freq" | head -n 1 | \
-      awk -F' ' '{printf "Most frequent word is \"%s\" (appeared %s times)\n",$2,$1}'
+            times=hist[w]
 
-   # take the last value (leastt frequent), and print
-   echo "$freq" | tail -n 1 | \
-      awk -F' ' '{printf "Least frequent word is \"%s\" (appeared %s times)\n",$2,$1}'
-
-   # 1. filter non unique words
-   # 2. print the length of every word in the same format like 'uniq -c'
-   # 3. sort like previous lines
-   # 4. print longest word
-   echo "$words" | \
-      uniq | \
-      awk '{ printf "%s %s\n",length($0),$0 }' | \
-      sort -rn | \
-      head -n 1 | \
-      awk -F' ' '{printf "Longest word is \"%s\" (%s characters)\n",$2,$1}'
+            if (times >= max) {
+               max = times
+               maxword = w
+            }
+            if (times <= min) {
+               min = times
+               minword = w
+            }
+         }
+         printf "Most frequent word is \"%s\" (appeared %d times)\n", maxword, max
+         printf "Least frequent word is \"%s\" (appeared %d times)\n", minword, min
+         printf "Longest word is \"%s\" (%d characters)\n",longest, length(longest)
+       }'
 }
 
 if ! test -z "$book_path"; then
@@ -56,5 +57,5 @@ fi
 
 # iterate all book chapters and print their stats
 for chapter in chapters/*; do
-   printf "%s\n" "$(print_stats "$chapter")"
+   printf "\n%s\n" "$(print_stats "$chapter")"
 done

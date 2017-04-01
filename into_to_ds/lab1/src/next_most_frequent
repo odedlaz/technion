@@ -19,14 +19,13 @@ fi
 # 6. get all uniq lines, with the amount they appeared
 # 7. sort according to the previous output
 # 8. get only the one that has the highest value
-result=$(grep -Po '(\w+\s+)?(A|a)lice(\s+\w+)?' "$book_path" | \
+grep -Po '(\w+\s+)?Alice(\s+\w+)?' "$book_path" | \
         sed 's/Alice//g' | \
         tr '[:space:]' '\n' | \
         sed '/^\s*$/d' | \
         sort | \
         uniq -c | \
         sort -rn | \
-        head -n 1)
-
-echo "$result" \
-   | awk '{ printf "The most frequent word near \"Alice\" is \"%s\" (appeared %s times)\n", $2, $1 }'
+        head -n 1 | \
+        awk '{ printf "The most frequent word near \"Alice\" is \"%s\" \
+(appeared %s times)\n", $2, $1 }'

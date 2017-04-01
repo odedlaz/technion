@@ -15,24 +15,23 @@ fi
 # 2. remove all non alphanumeric characters
 # 3. make everything lowercase
 # 4. sort
-words=$(tr -s '[:punct:][:space:]' '\n'< "$book_path" \
-        | tr -cd '[:alpha:]\n' \
-        | tr '[:upper:]' '[:lower:]' \
-        | uniq )
-
-# calculate the average word length
-average_word_length=$(echo "$words" | awk '
-  function ceil(num)
+tr -s '[:punct:][:space:]' '\n'< "$book_path" | \
+   tr -cd '[:alpha:]\n' | \
+   tr '[:upper:]' '[:lower:]' | \
+   uniq  | \
+   awk '
    {
-      return (num == int(num)) ? num : int(num)+1
-   }
-   { l+=length($book_path); c++ } END {print ceil(l/c)}')
+      words[$0]
+      sum += length($0);
+   } END {
+      average_word_length = sum/NR
+      words_longer_than_average = 0
 
+      for (word in words)
+         if (length(word) >= average_word_length)
+            words_longer_than_average++
 
-# filter words that are shorter than the average word length
-count=$(echo "$words" | \
-        awk "length > $average_word_length" | \
-        wc -l)
-
-echo "There are $count words that are longer than \
-the average word length ($average_word_length characters)"
+      printf "There are %d words that are longer \
+than the average word length (%0.3f)\n", \
+words_longer_than_average, average_word_length
+   }'
